@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, MessageSquare, Users, PenTool, X, Copy, Check, LayoutGrid, Maximize } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, MessageSquare, Users, PenTool, X, Copy, Check, LayoutGrid, Maximize, Lock } from 'lucide-react';
 import { socket } from '../socket';
 import Whiteboard, { getHashColor } from '../components/Whiteboard';
 
@@ -10,20 +10,20 @@ function RemoteVideo({ stream, peerName, peerID, isMainView, isVideoOff }: { str
 
   useEffect(() => {
     if (!ref.current || !stream) return;
-    
+
     ref.current.srcObject = stream;
-    
+
     // Force video update when tracks arrive asynchronously
     const handleTrackUpdate = () => {
       if (ref.current) ref.current.srcObject = stream;
     };
-    
+
     stream.addEventListener('addtrack', handleTrackUpdate);
     return () => stream.removeEventListener('addtrack', handleTrackUpdate);
   }, [stream]);
 
   return (
-    <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '180px', background: isMainView ? '#000' : undefined, boxShadow: `inset 0 0 0 3px ${getHashColor(peerID)}`, transition: 'box-shadow 0.3s' }}>
+    <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', background: isMainView ? '#000' : undefined }}>
       <video playsInline autoPlay ref={ref} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: isMainView ? 'contain' : 'cover', opacity: isVideoOff ? 0 : 1 }} />
       {isVideoOff && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel-bg-secondary)' }}>
@@ -32,9 +32,14 @@ function RemoteVideo({ stream, peerName, peerID, isMainView, isVideoOff }: { str
           </div>
         </div>
       )}
-      <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', maxWidth: 'calc(100% - 1.5rem)' }}>
-        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{peerName}</span>
+
+      {/* Name Label */}
+      <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.9rem', maxWidth: 'calc(100% - 2rem)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', zIndex: 10 }}>
+        {peerName}
       </div>
+
+      {/* Color Boundary Overlay */}
+      <div style={{ position: 'absolute', inset: 0, border: `1px solid ${getHashColor(peerID)}`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
     </div>
   );
 }
@@ -56,7 +61,16 @@ export default function Room() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [mediaError, setMediaError] = useState('');
   const [activeTab, setActiveTab] = useState<'chat' | 'participants' | 'whiteboard' | null>(null);
+  const activeTabRef = useRef(activeTab);
   const [messages, setMessages] = useState<{ user: string; text: string }[]>([]);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+    if (activeTab === 'chat') {
+      setUnreadChatCount(0);
+    }
+  }, [activeTab]);
   const [chatInput, setChatInput] = useState('');
   const [userName, setUserName] = useState('User');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
@@ -68,8 +82,17 @@ export default function Room() {
   const [pinnedPeerId, setPinnedPeerId] = useState<string | 'local' | null>(null);
 
   // Layout state
-  const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth * 0.4);
+  const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth * 0.25);
   const isResizing = useRef(false);
+
+  // Dynamically set default widths based on the opened tool
+  useEffect(() => {
+    if (activeTab === 'chat' || activeTab === 'participants') {
+      setSidebarWidth(window.innerWidth * 0.25);
+    } else if (activeTab === 'whiteboard') {
+      setSidebarWidth(window.innerWidth * 0.4);
+    }
+  }, [activeTab]);
 
   // Controls UI state
   const [showControls, setShowControls] = useState(true);
@@ -234,7 +257,7 @@ export default function Room() {
 
     socket.on('user-joined', async (payload: { signal: any; callerID: string; callerName: string }) => {
       console.log('[WebRTC] Received user-joined from', payload.callerName, payload.callerID, payload.signal.type);
-      
+
       let existingPeer = peersRef.current.find(p => p.peerID === payload.callerID);
       if (!existingPeer) {
         console.log('[WebRTC] Creating responder peer for', payload.callerID);
@@ -298,6 +321,9 @@ export default function Room() {
 
     const handleReceiveMessage = (data: { userId: string; message: string }) => {
       setMessages(prev => [...prev, { user: data.userId, text: data.message }]);
+      if (activeTabRef.current !== 'chat') {
+        setUnreadChatCount(prev => prev + 1);
+      }
     };
     socket.on('receive-message', handleReceiveMessage);
 
@@ -541,30 +567,42 @@ export default function Room() {
       <div className="room-main" onMouseMove={handleUserActivity} onClick={handleUserActivity}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Room: {roomId}</h3>
-              <button className="icon-btn secondary" onClick={copyRoomId} title="Copy Room ID" style={{ width: '32px', height: '32px', padding: '0.35rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', zIndex: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="apple-panel" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderRadius: '12px', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Room</span>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{roomId}</h3>
+              <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', margin: '0 0.25rem' }}></div>
+              <button className="icon-btn secondary" onClick={copyRoomId} title="Copy Room ID" style={{ width: '28px', height: '28px', padding: 0 }}>
                 {copied ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
               </button>
             </div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>End-to-End Encrypted</span>
-            {mediaError && <div style={{ color: '#FF3B30', fontSize: '0.85rem', marginTop: '0.25rem', fontWeight: 500 }}>{mediaError}</div>}
+
+            <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.8rem', borderRadius: '12px', background: '#34C75910', boxShadow: 'none' }}>
+              <Lock size={14} color="var(--success)" />
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--success)' }}>E2E Encrypted</span>
+            </div>
+
+            {mediaError && <div style={{ color: '#FF3B30', fontSize: '0.85rem', fontWeight: 500, padding: '0.5rem 0.8rem', borderRadius: '12px', background: '#FF3B3010' }}>{mediaError}</div>}
           </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button 
-              className="icon-btn secondary" 
+            <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.8rem', borderRadius: '12px', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <Users size={16} color="var(--text-secondary)" />
+              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{peers.length + 1}</span>
+            </div>
+
+            <button
+              className="apple-panel"
               onClick={() => setLayoutMode(layoutMode === 'grid' ? 'pinned' : 'grid')}
               title={layoutMode === 'grid' ? "Switch to Pinned View" : "Switch to Grid View"}
-              style={{ width: '40px', height: '40px' }}
+              style={{ padding: '0.5rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
             >
-              {layoutMode === 'grid' ? <Maximize size={18} /> : <LayoutGrid size={18} />}
+              {layoutMode === 'grid' ? <Maximize size={16} /> : <LayoutGrid size={16} />}
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{layoutMode === 'grid' ? 'Focus' : 'Grid'}</span>
             </button>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {peers.length + 1} participant{peers.length !== 0 ? 's' : ''}
-            </div>
-            <div style={{ background: '#FF3B3015', color: '#FF3B30', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+
+            <div className="apple-panel" style={{ background: '#FF3B3010', color: '#FF3B30', padding: '0.5rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: 'none' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF3B30' }}></div>
               REC
             </div>
@@ -576,15 +614,15 @@ export default function Room() {
           <div className="video-grid" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${peers.length === 0 ? '320px' : '220px'}, 1fr))` }}>
             {/* Local Video */}
             <div className="apple-panel" onClick={() => { setPinnedPeerId('local'); setLayoutMode('pinned'); }} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '180px', cursor: 'pointer' }}>
-              <video 
+              <video
                 ref={(node) => {
                   myVideoRef.current = node;
                   if (node && streamRef.current && node.srcObject !== streamRef.current) {
                     node.srcObject = streamRef.current;
                   }
-                }} 
-                autoPlay muted playsInline 
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: isScreenSharing ? 'none' : 'scaleX(-1)', opacity: isVideoOff && !isScreenSharing ? 0 : 1 }} 
+                }}
+                autoPlay muted playsInline
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: isScreenSharing ? 'none' : 'scaleX(-1)', opacity: isVideoOff && !isScreenSharing ? 0 : 1 }}
               />
               {isVideoOff && !isScreenSharing && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel-bg-secondary)' }}>
@@ -635,16 +673,16 @@ export default function Room() {
               {pinnedPeerId === 'local' || (peers.length === 0) ? (
                 <>
                   {/* Just one big local video */}
-                  <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', boxShadow: `inset 0 0 0 3px ${getHashColor(socket.id || '')}`, background: '#000' }}>
-                    <video 
+                  <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', background: '#000' }}>
+                    <video
                       ref={(node) => {
                         myVideoRef.current = node;
                         if (node && streamRef.current && node.srcObject !== streamRef.current) {
                           node.srcObject = streamRef.current;
                         }
-                      }} 
-                      autoPlay muted playsInline 
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', transform: isScreenSharing ? 'none' : 'scaleX(-1)', opacity: isVideoOff && !isScreenSharing ? 0 : 1 }} 
+                      }}
+                      autoPlay muted playsInline
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', transform: isScreenSharing ? 'none' : 'scaleX(-1)', opacity: isVideoOff && !isScreenSharing ? 0 : 1 }}
                     />
                     {isVideoOff && !isScreenSharing && (
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel-bg-secondary)' }}>
@@ -653,10 +691,13 @@ export default function Room() {
                         </div>
                       </div>
                     )}
-                    <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.5rem 0.8rem', borderRadius: '8px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: 'calc(100% - 2rem)' }}>
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName} (You)</span>
+                    <div style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', maxWidth: 'calc(100% - 3rem)', zIndex: 10 }}>
+                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userName} (You)</div>
                       {isMuted && <MicOff size={16} color="#FF3B30" style={{ flexShrink: 0 }} />}
                     </div>
+
+                    {/* Color Boundary Overlay */}
+                    <div style={{ position: 'absolute', inset: 0, border: `2px solid ${getHashColor(socket.id || '')}`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
                   </div>
                 </>
               ) : (
@@ -669,27 +710,31 @@ export default function Room() {
 
               {/* Floating Local Video (Bottom Right over Main View) */}
               {pinnedPeerId !== 'local' && peers.length > 0 && (
-                <div className="floating-local-video apple-panel" onClick={() => setPinnedPeerId('local')} title="Pin me" style={{ boxShadow: `inset 0 0 0 3px ${getHashColor(socket.id || '')}` }}>
-                  <video 
+                <div className="floating-local-video apple-panel" onClick={() => setPinnedPeerId('local')} title="Pin me">
+                  <video
                     ref={(node) => {
                       myVideoRef.current = node;
                       if (node && streamRef.current && node.srcObject !== streamRef.current) {
                         node.srcObject = streamRef.current;
                       }
-                    }} 
-                    autoPlay muted playsInline 
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: isScreenSharing ? 'none' : 'scaleX(-1)', opacity: isVideoOff && !isScreenSharing ? 0 : 1 }} 
+                    }}
+                    autoPlay muted playsInline
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: isScreenSharing ? 'none' : 'scaleX(-1)', opacity: isVideoOff && !isScreenSharing ? 0 : 1 }}
                   />
                   {isVideoOff && !isScreenSharing && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel-bg-secondary)' }}>
-                      <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 600 }}>
+                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 600 }}>
                         {userName.charAt(0).toUpperCase()}
                       </div>
                     </div>
                   )}
-                  <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', background: 'rgba(0,0,0,0.65)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', maxWidth: 'calc(100% - 1rem)' }}>
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>You</span> {isMuted && <MicOff size={10} color="#FF3B30" />}
+                  <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', background: 'rgba(0,0,0,0.65)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', maxWidth: 'calc(100% - 1rem)', zIndex: 10 }}>
+                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>You</div>
+                    {isMuted && <MicOff size={10} color="#FF3B30" style={{ flexShrink: 0 }} />}
                   </div>
+
+                  {/* Color Boundary Overlay */}
+                  <div style={{ position: 'absolute', inset: 0, border: `2px solid ${getHashColor(socket.id || '')}`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
                 </div>
               )}
             </div>
@@ -714,8 +759,13 @@ export default function Room() {
 
           <div style={{ width: '1px', height: '32px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
 
-          <button className="icon-btn" onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')} style={{ width: '48px', height: '48px', background: activeTab === 'chat' ? 'var(--primary)' : 'var(--panel-bg-secondary)', color: activeTab === 'chat' ? 'white' : 'var(--primary)' }}>
+          <button className="icon-btn" onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')} style={{ position: 'relative', width: '48px', height: '48px', background: activeTab === 'chat' ? 'var(--primary)' : 'var(--panel-bg-secondary)', color: activeTab === 'chat' ? 'white' : 'var(--primary)' }}>
             <MessageSquare size={20} />
+            {unreadChatCount > 0 && (
+              <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#FF3B30', color: 'white', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid var(--panel-bg)', zIndex: 10, pointerEvents: 'none' }}>
+                {unreadChatCount > 9 ? '9+' : unreadChatCount}
+              </div>
+            )}
           </button>
           <button className="icon-btn" onClick={() => setActiveTab(activeTab === 'participants' ? null : 'participants')} style={{ width: '48px', height: '48px', background: activeTab === 'participants' ? 'var(--primary)' : 'var(--panel-bg-secondary)', color: activeTab === 'participants' ? 'white' : 'var(--primary)' }}>
             <Users size={20} />
@@ -736,14 +786,14 @@ export default function Room() {
       {activeTab && (
         <div style={{ position: 'relative', display: 'flex', width: `${sidebarWidth}px`, margin: '1.5rem 1.5rem 1.5rem 0', flexShrink: 0 }}>
           {/* Resize Handle */}
-          <div 
+          <div
             onMouseDown={() => {
               isResizing.current = true;
               document.body.style.cursor = 'col-resize';
             }}
             style={{ width: '12px', cursor: 'col-resize', position: 'absolute', left: '-6px', top: 0, bottom: 0, zIndex: 10 }}
           />
-          
+
           <div className="apple-panel room-sidebar" style={{ width: '100%', margin: 0 }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--panel-bg-secondary)' }}>
               <h3 style={{ margin: 0, textTransform: 'capitalize', fontSize: '1.1rem' }}>{activeTab}</h3>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { socket } from '../socket';
 
-// Mathematical hash to generate a strictly unique, highly vibrant color per user
+// Use discrete color bucketing to guarantee visually distinct shades
 export const getHashColor = (id: string) => {
   if (!id) return '#00d2ff';
   
@@ -10,11 +10,15 @@ export const getHashColor = (id: string) => {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
   
-  const hue = Math.abs(hash) % 360;
-  const saturation = 75 + (Math.abs(hash >> 8) % 25); // 75% to 100%
-  const lightness = 45 + (Math.abs(hash >> 16) % 20); // 45% to 65%
+  // Snap to 12 strictly distinct hue buckets (30 degrees apart)
+  const hueBucket = Math.abs(hash) % 12;
+  const hue = hueBucket * 30;
   
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  // Vary lightness (45%, 55%, 65%) to create 36 strictly separated color slots
+  const lightnessBucket = (Math.abs(hash >> 8) % 3);
+  const lightness = 45 + (lightnessBucket * 10);
+  
+  return `hsl(${hue}, 85%, ${lightness}%)`;
 };
 
 interface WhiteboardProps {

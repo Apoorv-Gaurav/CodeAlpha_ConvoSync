@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Video, Calendar, Clock, LogOut, Plus, MonitorPlay } from 'lucide-react';
+import { Video, LogOut, Plus, MonitorPlay } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
         
         {/* Create Meeting Card */}
         <div className="apple-panel animate-fade-in" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', textAlign: 'center' }}>
@@ -85,25 +85,6 @@ export default function Dashboard() {
             />
             <button type="submit" className="secondary" style={{ padding: '1rem' }}>Join</button>
           </form>
-        </div>
-
-        {/* Schedule / Stats Card */}
-        <div className="apple-panel animate-fade-in" style={{ padding: '2rem', animationDelay: '0.2s' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', marginBottom: '1.5rem' }}><Calendar size={22} color="var(--primary)" /> Up Next</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ background: 'var(--panel-bg-secondary)', padding: '1rem 1.25rem', borderRadius: '12px' }}>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.25rem' }}>Team Standup</div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Clock size={14} /> 10:00 AM - 10:30 AM
-              </div>
-            </div>
-            <div style={{ background: 'var(--panel-bg-secondary)', padding: '1rem 1.25rem', borderRadius: '12px' }}>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.25rem' }}>Design Review</div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Clock size={14} /> 2:00 PM - 3:00 PM
-              </div>
-            </div>
-          </div>
         </div>
 
       </div>
