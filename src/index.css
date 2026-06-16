@@ -1,38 +1,72 @@
-:root {
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --font-family-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-heading: 'Outfit', 'Inter', -apple-system, sans-serif;
+  --card-radius: 14px;
+  --button-radius: 10px;
   
-  /* Apple Light Theme Colors */
-  --bg-color: #F2F2F7; /* iOS System Grouped Background */
+  --bg-color: #F2F2F7;
+  --bg-image: none;
   --panel-bg: #FFFFFF;
   --panel-bg-secondary: #F2F2F7;
   --text-primary: #1C1C1E;
   --text-secondary: #8E8E93;
   --border-color: rgba(60, 60, 67, 0.15);
   
-  /* Primary accents (Apple Blue) */
   --primary: #007AFF;
   --primary-hover: #0051D5;
-  --destructive: #FF3B30; /* Apple Red */
-  --success: #34C759; /* Apple Green */
-
-  --card-radius: 14px;
-  --button-radius: 10px;
+  --destructive: #FF3B30;
+  --success: #34C759;
+  
   --panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0,0,0,0.02);
+  --panel-backdrop: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-color: #000000;
-    --panel-bg: #1C1C1E;
-    --panel-bg-secondary: #2C2C2E;
-    --text-primary: #FFFFFF;
-    --text-secondary: #EBEBF599; /* 60% opacity white */
-    --border-color: rgba(84, 84, 88, 0.65);
-    
-    --primary: #0A84FF; /* Dark mode Apple Blue */
-    --primary-hover: #0066CC;
-    --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  }
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-color: #000000;
+  --bg-image: none;
+  --panel-bg: #1C1C1E;
+  --panel-bg-secondary: #2C2C2E;
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  --border-color: rgba(84, 84, 88, 0.65);
+  
+  --primary: #0A84FF;
+  --primary-hover: #0066CC;
+  --destructive: #FF453A;
+  --success: #32D74B;
+  
+  --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --panel-backdrop: none;
+}
+
+[data-theme="glassy"] {
+  color-scheme: light;
+  --bg-color: #F8FAFC;
+  --bg-image: 
+    radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(56, 189, 248, 0.25) 0%, transparent 50%);
+  --panel-bg: rgba(255, 255, 255, 0.55);
+  --panel-bg-secondary: rgba(255, 255, 255, 0.35);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --border-color: rgba(255, 255, 255, 0.6);
+  
+  --primary: #4F46E5; /* Professional Indigo */
+  --primary-hover: #4338CA;
+  --destructive: #EF4444;
+  --success: #10B981;
+  
+  --panel-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+  --panel-backdrop: blur(28px);
+}
+
+@keyframes glassy-bg-pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 * {
@@ -42,8 +76,11 @@
 }
 
 body {
-  font-family: var(--font-family);
-  background: var(--bg-color);
+  font-family: var(--font-family-body);
+  background-color: var(--bg-color);
+  background-image: var(--bg-image);
+  background-size: 200% 200%;
+  animation: glassy-bg-pan 15s ease infinite;
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
@@ -58,13 +95,16 @@ body {
   border: 1px solid var(--border-color);
   box-shadow: var(--panel-shadow);
   border-radius: var(--card-radius);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+  backdrop-filter: var(--panel-backdrop);
+  -webkit-backdrop-filter: var(--panel-backdrop);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-heading);
   font-weight: 600;
-  letter-spacing: -0.02em; /* Apple-style tight tracking for headings */
+  letter-spacing: -0.01em; /* Optimized for Outfit */
   margin-bottom: 0.5rem;
 }
 
@@ -79,6 +119,11 @@ p {
 }
 
 /* Inputs & Buttons */
+select option {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
 button {
   background: var(--primary);
   color: #fff;
@@ -131,7 +176,7 @@ input, textarea {
   width: 100%;
   padding: 0.8rem 1rem;
   background: var(--panel-bg-secondary);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-color);
   border-radius: var(--button-radius);
   color: var(--text-primary);
   font-size: 1rem;

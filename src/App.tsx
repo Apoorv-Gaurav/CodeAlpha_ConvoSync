@@ -3,10 +3,12 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
+import { ThemeProvider } from './ThemeContext';
 
 function App() {
   return (
-    <Router>
+    <ThemeProvider>
+      <Router>
       <div className="app-container">
         <ErrorBoundary>
           <Routes>
@@ -17,6 +19,7 @@ function App() {
         </ErrorBoundary>
       </div>
     </Router>
+    </ThemeProvider>
   );
 }
 

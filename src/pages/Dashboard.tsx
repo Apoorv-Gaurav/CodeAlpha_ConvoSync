@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Video, LogOut, Plus, MonitorPlay } from 'lucide-react';
+import { Video, LogOut, Plus, MonitorPlay, Palette } from 'lucide-react';
+import { useTheme, type Theme } from '../ThemeContext';
 
 export default function Dashboard() {
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState('');
   const [userName, setUserName] = useState('User');
@@ -46,6 +48,20 @@ export default function Dashboard() {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 700 }}>ConvoSync</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          
+          <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', borderRadius: '12px' }}>
+            <Palette size={16} color="var(--text-secondary)" style={{ marginLeft: '0.4rem' }} />
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as Theme)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.4rem' }}
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="glassy">Glassy</option>
+            </select>
+          </div>
+
           <span style={{ fontWeight: 500 }}>{userName}</span>
           <button className="secondary icon-btn" onClick={handleLogout} title="Log out">
             <LogOut size={20} />

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, MessageSquare, Users, PenTool, X, Copy, Check, LayoutGrid, Maximize, Lock } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, MessageSquare, Users, PenTool, X, Copy, Check, LayoutGrid, Maximize, Lock, Palette } from 'lucide-react';
 import { socket } from '../socket';
 import Whiteboard, { getHashColor } from '../components/Whiteboard';
+import { useTheme, type Theme } from '../ThemeContext';
 
 // ===== Remote video component =====
 function RemoteVideo({ stream, peerName, peerID, isMainView, isVideoOff }: { stream?: MediaStream; peerName: string; peerID: string; isMainView?: boolean; isVideoOff?: boolean }) {
@@ -54,6 +55,7 @@ interface PeerInfo {
 }
 
 export default function Room() {
+  const { theme, setTheme } = useTheme();
   const { id: roomId } = useParams();
   const navigate = useNavigate();
 
@@ -587,6 +589,19 @@ export default function Room() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.6rem', borderRadius: '12px', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <Palette size={14} color="var(--text-secondary)" style={{ marginLeft: '0.2rem' }} />
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as Theme)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, padding: 0 }}
+              >
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="glassy">Glassy</option>
+              </select>
+            </div>
+            
             <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.8rem', borderRadius: '12px', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
               <Users size={16} color="var(--text-secondary)" />
               <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{peers.length + 1}</span>
