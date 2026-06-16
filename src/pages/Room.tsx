@@ -54,6 +54,14 @@ interface PeerInfo {
   isVideoOff?: boolean;
 }
 
+// ===== Native WebRTC Configurations =====
+const iceServers = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:global.stun.twilio.com:3478' }
+  ]
+};
+
 export default function Room() {
   const { theme, setTheme } = useTheme();
   const { id: roomId } = useParams();
@@ -98,7 +106,7 @@ export default function Room() {
 
   // Controls UI state
   const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleUserActivity = useCallback(() => {
     setShowControls(true);
@@ -146,16 +154,8 @@ export default function Room() {
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const peersRef = useRef<PeerInfo[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const joinedRef = useRef(false); // prevent double-join from strict mode
 
   // ===== Native WebRTC Peer Creation =====
-  const iceServers = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:global.stun.twilio.com:3478' }
-    ]
-  };
-
   const createPeer = useCallback((userToSignal: string, callerID: string, callerName: string) => {
     const pc = new RTCPeerConnection(iceServers);
     const remoteStream = new MediaStream();
@@ -222,7 +222,6 @@ export default function Room() {
     let isCancelled = false;
 
     peersRef.current = [];
-    setPeers([]);
 
     socket.connect();
 
@@ -234,7 +233,7 @@ export default function Room() {
         const user = JSON.parse(userStr);
         if (user?.name) { name = user.name; setUserName(user.name); }
       }
-    } catch (_e) { /* ignore */ }
+    } catch { /* ignore */ }
 
     // ===== Register ALL listeners BEFORE joining =====
 
@@ -257,7 +256,7 @@ export default function Room() {
       setPeers([...peersRef.current]);
     });
 
-    socket.on('user-joined', async (payload: { signal: any; callerID: string; callerName: string }) => {
+    socket.on('user-joined', async (payload: { signal: RTCSessionDescriptionInit | { type: 'candidate', candidate: RTCIceCandidateInit }; callerID: string; callerName: string }) => {
       console.log('[WebRTC] Received user-joined from', payload.callerName, payload.callerID, payload.signal.type);
 
       let existingPeer = peersRef.current.find(p => p.peerID === payload.callerID);
@@ -294,7 +293,7 @@ export default function Room() {
       }
     });
 
-    socket.on('receiving-returned-signal', async (payload: { signal: any; id: string }) => {
+    socket.on('receiving-returned-signal', async (payload: { signal: RTCSessionDescriptionInit | { type: 'candidate', candidate: RTCIceCandidateInit }; id: string }) => {
       console.log('[WebRTC] Received return signal from', payload.id, payload.signal.type);
       const item = peersRef.current.find(p => p.peerID === payload.id);
       if (item) {
@@ -672,7 +671,7 @@ export default function Room() {
         ) : (
           <div className="pinned-layout-container">
             {/* Remote Strip (Left Column) */}
-            {peers.length > 0 && (
+            {peers.filter(p => p.peerID !== (pinnedPeerId || peers[0]?.peerID)).length > 0 && (
               <div className="remote-video-strip">
                 {/* Show all peers that are NOT currently pinned */}
                 {peers.filter(p => p.peerID !== (pinnedPeerId || peers[0]?.peerID)).map(peerObj => (
@@ -880,7 +879,7 @@ export default function Room() {
             {/* Whiteboard */}
             {activeTab === 'whiteboard' && (
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <Whiteboard peers={peers} localUserName={userName} />
+                <Whiteboard />
               </div>
             )}
           </div>

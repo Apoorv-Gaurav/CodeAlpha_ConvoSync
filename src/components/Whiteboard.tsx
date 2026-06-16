@@ -21,12 +21,7 @@ export const getHashColor = (id: string) => {
   return `hsl(${hue}, 85%, ${lightness}%)`;
 };
 
-interface WhiteboardProps {
-  peers?: any[];
-  localUserName?: string;
-}
-
-export default function Whiteboard({ peers = [], localUserName = 'User' }: WhiteboardProps) {
+export default function Whiteboard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const lastPos = useRef<{ x: number, y: number } | null>(null);

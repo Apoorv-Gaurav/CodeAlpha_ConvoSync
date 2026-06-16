@@ -20,7 +20,7 @@ export default function Dashboard() {
       if (user && user.name) {
         setUserName(user.name);
       }
-    } catch (e) {
+    } catch {
       // invalid json
     }
   }, [navigate]);
