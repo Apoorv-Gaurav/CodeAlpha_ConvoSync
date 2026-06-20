@@ -45,9 +45,9 @@ export default function Dashboard() {
 
   return (
     <div className="main-content">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+      <header className="dashboard-header">
         <h2 style={{ fontSize: '2rem', fontWeight: 700 }}>ConvoSync</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="dashboard-header-actions">
           
           <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', borderRadius: '12px' }}>
             <Palette size={16} color="var(--text-secondary)" style={{ marginLeft: '0.4rem' }} />
@@ -69,10 +69,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+      <div className="dashboard-grid">
         
         {/* Create Meeting Card */}
-        <div className="apple-panel animate-fade-in" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', textAlign: 'center' }}>
+        <div className="apple-panel dashboard-card animate-fade-in">
           <div style={{ background: 'var(--primary)', padding: '1.25rem', borderRadius: '50%', color: 'white', marginBottom: '0.5rem', boxShadow: '0 8px 16px rgba(0,122,255,0.2)' }}>
             <Video size={36} strokeWidth={1.5} />
           </div>
@@ -84,7 +84,7 @@ export default function Dashboard() {
         </div>
 
         {/* Join Meeting Card */}
-        <div className="apple-panel animate-fade-in" style={{ padding: '2.5rem 2rem', animationDelay: '0.1s', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', textAlign: 'center' }}>
+        <div className="apple-panel dashboard-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div style={{ background: 'var(--panel-bg-secondary)', padding: '1.25rem', borderRadius: '50%', color: 'var(--primary)', marginBottom: '0.5rem' }}>
             <MonitorPlay size={36} strokeWidth={1.5} />
           </div>

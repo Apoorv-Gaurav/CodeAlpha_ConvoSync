@@ -20,7 +20,8 @@ export default function Home() {
     const payload = isLogin ? { email, password } : { name, email, password };
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -35,8 +36,9 @@ export default function Home() {
       // Save token and user info
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('convosync_user', data.user.name);
 
-      navigate('/dashboard');
+      navigate('/welcome');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -46,7 +48,7 @@ export default function Home() {
 
   return (
     <div className="main-content flex-center">
-      <div className="apple-panel" style={{ padding: '3.5rem 3rem', width: '100%', maxWidth: '420px', textAlign: 'center' }}>
+      <div className="apple-panel auth-panel">
         <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>ConvoSync</h1>
         <p style={{ marginBottom: '2.5rem' }}>{isLogin ? 'Sign in to your account' : 'Create a new account'}</p>
         

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, MessageSquare, Users, PenTool, X, Copy, Check, LayoutGrid, Maximize, Lock, Palette } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, MessageSquare, Users, PenTool, X, Copy, Check, LayoutGrid, Maximize, Lock, Palette, Smile } from 'lucide-react';
 import { socket } from '../socket';
 import Whiteboard, { getHashColor } from '../components/Whiteboard';
 import { useTheme, type Theme } from '../ThemeContext';
@@ -82,6 +82,7 @@ export default function Room() {
     }
   }, [activeTab]);
   const [chatInput, setChatInput] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [userName, setUserName] = useState('User');
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [copied, setCopied] = useState(false);
@@ -113,7 +114,7 @@ export default function Room() {
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
       setShowControls(false);
-    }, 3000);
+    }, 5000);
   }, []);
 
   useEffect(() => {
@@ -565,11 +566,11 @@ export default function Room() {
     <div className="room-container">
 
       {/* Main Video Area */}
-      <div className="room-main" onMouseMove={handleUserActivity} onClick={handleUserActivity}>
+      <div className="room-main" onMouseMove={handleUserActivity} onClick={handleUserActivity} onTouchStart={handleUserActivity}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="room-header">
+          <div className="room-header-left">
             <div className="apple-panel" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderRadius: '12px', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Room</span>
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{roomId}</h3>
@@ -587,7 +588,7 @@ export default function Room() {
             {mediaError && <div style={{ color: '#FF3B30', fontSize: '0.85rem', fontWeight: 500, padding: '0.5rem 0.8rem', borderRadius: '12px', background: '#FF3B3010' }}>{mediaError}</div>}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="room-header-right">
             <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.6rem', borderRadius: '12px', background: 'var(--panel-bg)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
               <Palette size={14} color="var(--text-secondary)" style={{ marginLeft: '0.2rem' }} />
               <select
@@ -798,9 +799,10 @@ export default function Room() {
 
       {/* Sidebar Wrapper */}
       {activeTab && (
-        <div style={{ position: 'relative', display: 'flex', width: `${sidebarWidth}px`, margin: '1.5rem 1.5rem 1.5rem 0', flexShrink: 0 }}>
+        <div className="mobile-sidebar-wrapper" style={{ position: 'relative', display: 'flex', width: `${sidebarWidth}px`, margin: '1.5rem 1.5rem 1.5rem 0', flexShrink: 0 }}>
           {/* Resize Handle */}
           <div
+            className="resize-handle-mobile"
             onMouseDown={() => {
               isResizing.current = true;
               document.body.style.cursor = 'col-resize';
@@ -844,8 +846,32 @@ export default function Room() {
                     ))
                   )}
                 </div>
-                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', background: 'var(--panel-bg-secondary)' }}>
-                  <form onSubmit={sendMessage} style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', background: 'var(--panel-bg-secondary)', position: 'relative' }}>
+                  {showEmojiPicker && (
+                    <div className="apple-panel animate-fade-in" style={{ position: 'absolute', bottom: '100%', left: '1.5rem', marginBottom: '0.5rem', padding: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.25rem', zIndex: 50, background: 'var(--panel-bg)', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      {[
+                        '👍', '❤️', '😂', '🔥', '🎉', '👏', '😢', '🙌',
+                        '😊', '😍', '🤔', '😎', '😡', '🤯', '😭', '✨',
+                        '💯', '🙏', '👀', '💡', '🚀', '🌟', '💪', '👋'
+                      ].map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setChatInput(prev => prev + emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          style={{ background: 'none', border: 'none', fontSize: '1.25rem', padding: '0.35rem', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <form onSubmit={sendMessage} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                      <Smile size={22} />
+                    </button>
                     <input type="text" placeholder="Message..." value={chatInput} onChange={e => setChatInput(e.target.value)}
                       style={{ flex: 1, borderRadius: '100px', padding: '0.75rem 1.25rem', border: '1px solid var(--border-color)', background: 'var(--panel-bg)' }} />
                     <button type="submit" style={{ borderRadius: '100px', padding: '0.75rem 1.25rem' }}>Send</button>

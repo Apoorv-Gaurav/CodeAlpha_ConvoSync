@@ -25,7 +25,8 @@ export default function Whiteboard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const lastPos = useRef<{ x: number, y: number } | null>(null);
-  const linesRef = useRef<{ x0: number, y0: number, x1: number, y1: number, color: string }[]>([]);
+  const currentStrokeId = useRef<string | null>(null);
+  const linesRef = useRef<{ x0: number, y0: number, x1: number, y1: number, color: string, strokeId?: string }[]>([]);
 
   const myColor = useRef(getHashColor(socket.id || Math.random().toString()));
 
@@ -76,7 +77,7 @@ export default function Whiteboard() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const handleDraw = (data: { x0: number, y0: number, x1: number, y1: number, color: string }) => {
+    const handleDraw = (data: { x0: number, y0: number, x1: number, y1: number, color: string, strokeId?: string }) => {
       linesRef.current.push(data); // Save the stroke
       const w = canvas.width;
       const h = canvas.height;
@@ -120,7 +121,7 @@ export default function Whiteboard() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const lineData = { x0, y0, x1, y1, color };
+    const lineData = { x0, y0, x1, y1, color, strokeId: currentStrokeId.current || undefined };
     linesRef.current.push(lineData);
 
     const w = canvas.width;
@@ -161,6 +162,7 @@ export default function Whiteboard() {
 
   const onMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDrawing(true);
+    currentStrokeId.current = Math.random().toString(36).substring(2, 9);
     lastPos.current = getPos(e);
   };
 
@@ -175,6 +177,7 @@ export default function Whiteboard() {
   const onMouseUp = () => {
     setIsDrawing(false);
     lastPos.current = null;
+    currentStrokeId.current = null;
   };
 
   const clearBoard = () => {
@@ -187,21 +190,35 @@ export default function Whiteboard() {
     }
   };
 
+  const undoStroke = () => {
+    socket.emit('undo');
+  };
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', height: '100%', padding: '1.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
+    <div className="whiteboard-wrapper">
+      <div className="whiteboard-toolbar">
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ color: myColor.current }}>✎</span> Shared Whiteboard
         </h3>
         
-        <button 
-          onClick={clearBoard}
-          style={{ padding: '0.5rem 1.2rem', background: 'var(--panel-bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-color)', cursor: 'pointer', fontWeight: 500, transition: 'all 0.2s' }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-color)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'var(--panel-bg-secondary)'}
-        >
-          Clear Board
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            onClick={undoStroke}
+            style={{ padding: '0.5rem 1.2rem', background: 'var(--panel-bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-color)', cursor: 'pointer', fontWeight: 500, transition: 'all 0.2s' }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-color)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'var(--panel-bg-secondary)'}
+          >
+            Undo
+          </button>
+          <button 
+            onClick={clearBoard}
+            style={{ padding: '0.5rem 1.2rem', background: 'var(--panel-bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-color)', cursor: 'pointer', fontWeight: 500, transition: 'all 0.2s' }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-color)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'var(--panel-bg-secondary)'}
+          >
+            Clear Board
+          </button>
+        </div>
       </div>
       <div className="apple-panel" style={{ flex: 1, position: 'relative', background: '#1e1e1e', borderRadius: '16px', overflow: 'hidden' }}>
         <canvas
