@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node server.ts",
-    "dev": "nodemon server.ts"
+    "dev": "nodemon server.ts",
+    "build": "echo 'No build step required for ts-node'"
   },
   "keywords": [],
   "author": "",
