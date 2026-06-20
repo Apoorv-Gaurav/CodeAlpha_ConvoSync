@@ -24,7 +24,7 @@ function RemoteVideo({ stream, peerName, peerID, isMainView, isVideoOff }: { str
   }, [stream]);
 
   return (
-    <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', background: isMainView ? '#000' : undefined }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', flexDirection: 'column', background: isMainView ? '#000' : undefined }}>
       <video playsInline autoPlay ref={ref} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: isMainView ? 'contain' : 'cover', opacity: isVideoOff ? 0 : 1 }} />
       {isVideoOff && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel-bg-secondary)' }}>
@@ -648,7 +648,7 @@ export default function Room() {
         {layoutMode === 'grid' ? (
           <div className="video-grid" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${peers.length === 0 ? '320px' : '220px'}, 1fr))` }}>
             {/* Local Video */}
-            <div className="apple-panel" onClick={() => { setPinnedPeerId('local'); setLayoutMode('pinned'); }} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '180px', cursor: 'pointer' }}>
+            <div className="" onClick={() => { setPinnedPeerId('local'); setLayoutMode('pinned'); }} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', flexDirection: 'column', minHeight: '180px', cursor: 'pointer', background: '#000' }}>
               <video
                 ref={(node) => {
                   myVideoRef.current = node;
@@ -680,7 +680,7 @@ export default function Room() {
 
             {/* Waiting placeholder */}
             {peers.length === 0 && (
-              <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel-bg-secondary)', minHeight: '180px' }}>
+              <div className="" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', minHeight: '180px' }}>
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                   <Users size={48} style={{ opacity: 0.5, marginBottom: '1rem' }} />
                   <p style={{ fontWeight: 500 }}>Waiting for others to join...</p>
@@ -708,7 +708,7 @@ export default function Room() {
               {pinnedPeerId === 'local' || (peers.length === 0) ? (
                 <>
                   {/* Just one big local video */}
-                  <div className="apple-panel" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px', background: '#000' }}>
+                  <div className="" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', background: '#000' }}>
                     <video
                       ref={(node) => {
                         myVideoRef.current = node;
@@ -732,7 +732,7 @@ export default function Room() {
                     </div>
 
                     {/* Color Boundary Overlay */}
-                    <div style={{ position: 'absolute', inset: 0, border: `2px solid ${getHashColor(socket.id || '')}`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
+                    <div style={{ position: 'absolute', inset: 0, border: `2px solid ${getHashColor(socket.id || '')}`, borderRadius: '0', pointerEvents: 'none', zIndex: 20 }}></div>
                   </div>
                 </>
               ) : (
@@ -745,7 +745,7 @@ export default function Room() {
 
               {/* Floating Local Video (Bottom Right over Main View) */}
               {pinnedPeerId !== 'local' && peers.length > 0 && (
-                <div className="floating-local-video apple-panel" onClick={() => setPinnedPeerId('local')} title="Pin me">
+                <div className="floating-local-video" onClick={() => setPinnedPeerId('local')} title="Pin me">
                   <video
                     ref={(node) => {
                       myVideoRef.current = node;
