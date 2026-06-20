@@ -55,7 +55,7 @@ interface PeerInfo {
 }
 
 // ===== Native WebRTC Configurations =====
-const iceServers = {
+const defaultIceServers: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:global.stun.twilio.com:3478' }
@@ -155,10 +155,11 @@ export default function Room() {
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const peersRef = useRef<PeerInfo[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const iceServersRef = useRef<RTCConfiguration>(defaultIceServers);
 
   // ===== Native WebRTC Peer Creation =====
   const createPeer = useCallback((userToSignal: string, callerID: string, callerName: string) => {
-    const pc = new RTCPeerConnection(iceServers);
+    const pc = new RTCPeerConnection(iceServersRef.current);
     const remoteStream = new MediaStream();
 
     const stream = streamRef.current;
@@ -194,7 +195,7 @@ export default function Room() {
   }, []);
 
   const addPeer = useCallback((callerID: string) => {
-    const pc = new RTCPeerConnection(iceServers);
+    const pc = new RTCPeerConnection(iceServersRef.current);
     const remoteStream = new MediaStream();
 
     const stream = streamRef.current;
@@ -224,21 +225,56 @@ export default function Room() {
 
     peersRef.current = [];
 
-    socket.connect();
-
-    // Read user name
-    let name = 'User';
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        if (user?.name) { name = user.name; setUserName(user.name); }
+    const handleReceiveMessage = (data: { userId: string; message: string }) => {
+      setMessages(prev => [...prev, { user: data.userId, text: data.message }]);
+      if (activeTabRef.current !== 'chat') {
+        setUnreadChatCount(prev => prev + 1);
       }
-    } catch { /* ignore */ }
+    };
 
-    // ===== Register ALL listeners BEFORE joining =====
+    const handleUserDisconnected = (socketId: string) => {
+      console.log('[WebRTC] User disconnected:', socketId);
+      const peerObj = peersRef.current.find(p => p.peerID === socketId);
+      if (peerObj) peerObj.pc.close();
+      peersRef.current = peersRef.current.filter(p => p.peerID !== socketId);
+      setPeers([...peersRef.current]);
+    };
 
-    socket.on('all-users', (users: Array<{ socketId: string; userName: string }>) => {
+    // Video toggle sync
+    const handlePeerVideoToggled = ({ peerId, isVideoOff }: { peerId: string, isVideoOff: boolean }) => {
+      setPeers(prev => prev.map(p => p.peerID === peerId ? { ...p, isVideoOff } : p));
+    };
+
+    const initWebRTCAndJoin = async () => {
+      try {
+        const apiKey = import.meta.env.VITE_METERED_API_KEY || 'a7035d64157762e6dff8bf11c18584f5d7c2';
+        const response = await fetch(`https://convosync.metered.live/api/v1/turn/credentials?apiKey=${apiKey}`);
+        const fetchedIceServers = await response.json();
+        if (!isCancelled && fetchedIceServers && fetchedIceServers.length > 0) {
+          iceServersRef.current = { iceServers: fetchedIceServers };
+          console.log('[WebRTC] Fetched dynamic ICE servers from Metered');
+        }
+      } catch (err) {
+        console.error('[WebRTC] Failed to fetch TURN servers:', err);
+      }
+
+      if (isCancelled) return;
+
+      socket.connect();
+
+      // Read user name
+      let name = 'User';
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user?.name) { name = user.name; setUserName(user.name); }
+        }
+      } catch { /* ignore */ }
+
+      // ===== Register ALL listeners BEFORE joining =====
+
+      socket.on('all-users', (users: Array<{ socketId: string; userName: string }>) => {
       console.log('[WebRTC] Received all-users:', users.length, 'existing users');
 
       const newPeers: PeerInfo[] = [];
@@ -321,27 +357,8 @@ export default function Room() {
       }
     });
 
-    const handleReceiveMessage = (data: { userId: string; message: string }) => {
-      setMessages(prev => [...prev, { user: data.userId, text: data.message }]);
-      if (activeTabRef.current !== 'chat') {
-        setUnreadChatCount(prev => prev + 1);
-      }
-    };
     socket.on('receive-message', handleReceiveMessage);
-
-    const handleUserDisconnected = (socketId: string) => {
-      console.log('[WebRTC] User disconnected:', socketId);
-      const peerObj = peersRef.current.find(p => p.peerID === socketId);
-      if (peerObj) peerObj.pc.close();
-      peersRef.current = peersRef.current.filter(p => p.peerID !== socketId);
-      setPeers([...peersRef.current]);
-    };
     socket.on('user-disconnected', handleUserDisconnected);
-
-    // Video toggle sync
-    const handlePeerVideoToggled = ({ peerId, isVideoOff }: { peerId: string, isVideoOff: boolean }) => {
-      setPeers(prev => prev.map(p => p.peerID === peerId ? { ...p, isVideoOff } : p));
-    };
     socket.on('peer-video-toggled', handlePeerVideoToggled);
 
     // ===== Get media then join =====
@@ -378,6 +395,9 @@ export default function Room() {
           socket.emit('join-room', roomId, name);
         });
     }
+  };
+
+  initWebRTCAndJoin();
 
     // ===== Cleanup =====
     return () => {
