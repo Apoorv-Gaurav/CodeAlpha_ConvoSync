@@ -11,16 +11,26 @@ function RemoteVideo({ stream, peerName, isMainView, isVideoOff, mode = 'pinned'
 
   useEffect(() => {
     if (!ref.current || !stream) return;
-
+    
     ref.current.srcObject = stream;
-
-    // Force video update when tracks arrive asynchronously
+    
     const handleTrackUpdate = () => {
-      if (ref.current) ref.current.srcObject = stream;
+      if (ref.current) {
+        ref.current.srcObject = stream;
+        ref.current.play().catch(e => console.warn('Video track play prevented:', e));
+      }
     };
-
+    
     stream.addEventListener('addtrack', handleTrackUpdate);
-    return () => stream.removeEventListener('addtrack', handleTrackUpdate);
+    stream.addEventListener('removetrack', handleTrackUpdate);
+    
+    // Ensure video plays
+    ref.current.play().catch(e => console.warn('Video auto-play prevented:', e));
+    
+    return () => {
+      stream.removeEventListener('addtrack', handleTrackUpdate);
+      stream.removeEventListener('removetrack', handleTrackUpdate);
+    };
   }, [stream]);
 
   return (
@@ -202,11 +212,12 @@ export default function Room() {
 
     pc.onnegotiationneeded = async () => {
       try {
+        if (pc.signalingState !== 'stable') return;
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         socket.emit('sending-signal', { userToSignal, callerID, signal: pc.localDescription, callerName });
       } catch (err) {
-        console.error('Error creating offer:', err);
+        console.error(err);
       }
     };
 
