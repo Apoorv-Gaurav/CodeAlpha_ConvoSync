@@ -942,7 +942,7 @@ export default function Room() {
           />
 
           <div className="apple-panel room-sidebar" style={{ width: '100%', margin: 0 }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--panel-bg-secondary)' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isMobile && theme === 'glassy' ? 'rgba(255, 255, 255, 0.95)' : 'var(--panel-bg-secondary)' }}>
               <h3 style={{ margin: 0, textTransform: 'capitalize', fontSize: '1.1rem' }}>{activeTab}</h3>
               <button className="icon-btn secondary" onClick={() => setActiveTab(null)} style={{ padding: '0.4rem', color: 'var(--text-secondary)' }}>
                 <X size={18} />
@@ -952,7 +952,7 @@ export default function Room() {
             {/* Chat */}
             {activeTab === 'chat' && (
               <>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--panel-bg)' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: isMobile && theme === 'glassy' ? 'rgba(255, 255, 255, 0.85)' : 'var(--panel-bg)' }}>
                   {messages.length === 0 ? (
                     <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '3rem' }}>
                       <MessageSquare size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
@@ -977,9 +977,9 @@ export default function Room() {
                     ))
                   )}
                 </div>
-                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', background: 'var(--panel-bg-secondary)', position: 'relative' }}>
+                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', background: isMobile && theme === 'glassy' ? 'rgba(255, 255, 255, 0.95)' : 'var(--panel-bg-secondary)', position: 'relative' }}>
                   {showEmojiPicker && (
-                    <div className="apple-panel animate-fade-in" style={{ position: 'absolute', bottom: '100%', left: '1.5rem', marginBottom: '0.5rem', padding: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.25rem', zIndex: 50, background: 'var(--panel-bg)', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                    <div className="apple-panel animate-fade-in" style={{ position: 'absolute', bottom: '100%', left: '1.5rem', marginBottom: '0.5rem', padding: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.25rem', zIndex: 50, background: isMobile && theme === 'glassy' ? 'rgba(255, 255, 255, 0.95)' : 'var(--panel-bg)', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                       {[
                         '👍', '❤️', '😂', '🔥', '🎉', '👏', '😢', '🙌',
                         '😊', '😍', '🤔', '😎', '😡', '🤯', '😭', '✨',
