@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import Logo from '../components/Logo';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ export default function Home() {
   return (
     <div className="main-content flex-center">
       <div className="apple-panel auth-panel">
-        <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>ConvoSync</h1>
+        <Logo width="220px" style={{ marginBottom: '0.5rem', display: 'inline-block' }} />
         <p style={{ marginBottom: '2.5rem' }}>{isLogin ? 'Sign in to your account' : 'Create a new account'}</p>
         
         {error && (

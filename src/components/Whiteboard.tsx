@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { socket } from '../socket';
 
-// Use discrete color bucketing to guarantee visually distinct shades
 export const getHashColor = (id: string) => {
   if (!id) return '#00d2ff';
   

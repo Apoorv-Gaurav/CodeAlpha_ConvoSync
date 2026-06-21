@@ -10,12 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
+    "autoprefixer": "^10.5.0",
+    "framer-motion": "^12.40.0",
     "lucide-react": "^1.18.0",
+    "postcss": "^8.5.15",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.17.0",
     "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.3.1",
     "vite-plugin-node-polyfills": "^0.28.0"
   },
   "devDependencies": {

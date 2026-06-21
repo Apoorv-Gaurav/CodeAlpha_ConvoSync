@@ -6,7 +6,7 @@ import Whiteboard, { getHashColor } from '../components/Whiteboard';
 import { useTheme, type Theme } from '../ThemeContext';
 
 // ===== Remote video component =====
-function RemoteVideo({ stream, peerName, peerID, isMainView, isVideoOff }: { stream?: MediaStream; peerName: string; peerID: string; isMainView?: boolean; isVideoOff?: boolean }) {
+function RemoteVideo({ stream, peerName, isMainView, isVideoOff, mode = 'pinned' }: { stream?: MediaStream; peerName: string; peerID: string; isMainView?: boolean; isVideoOff?: boolean; mode?: 'grid' | 'pinned' }) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ function RemoteVideo({ stream, peerName, peerID, isMainView, isVideoOff }: { str
       </div>
 
       {/* Color Boundary Overlay */}
-      <div style={{ position: 'absolute', inset: 0, border: `1px solid ${getHashColor(peerID)}`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
+      <div style={{ position: 'absolute', inset: 0, border: `1px solid var(--border-color)`, borderRadius: mode === 'grid' ? '0' : '16px', pointerEvents: 'none', zIndex: 20 }}></div>
     </div>
   );
 }
@@ -94,7 +94,15 @@ export default function Room() {
 
   // Layout state
   const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth * 0.25);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const isMobile = windowWidth <= 768;
   const isResizing = useRef(false);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Dynamically set default widths based on the opened tool
   useEffect(() => {
@@ -600,9 +608,17 @@ export default function Room() {
               </button>
             </div>
 
-            <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.8rem', borderRadius: '12px', background: '#34C75910', boxShadow: 'none' }}>
-              <Lock size={14} color="var(--success)" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--success)' }}>E2E Encrypted</span>
+            <div style={{ display: 'flex', alignItems: 'center', flex: isMobile ? 1 : 'none', gap: '0.4rem', width: isMobile ? '100%' : 'auto' }}>
+              <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.8rem', borderRadius: '12px', background: '#34C75910', boxShadow: 'none' }}>
+                <Lock size={14} color="var(--success)" />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--success)' }}>{isMobile ? 'E2E' : 'E2E Encrypted'}</span>
+              </div>
+
+              {isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingRight: '1rem' }}>
+                  <img src={theme === 'light' || theme === 'glassy' ? "/icon-dark.png" : "/icon-light.png"} alt="ConvoSync" style={{ height: '24px', objectFit: 'contain' }} />
+                </div>
+              )}
             </div>
 
             {mediaError && <div style={{ color: '#FF3B30', fontSize: '0.85rem', fontWeight: 500, padding: '0.5rem 0.8rem', borderRadius: '12px', background: '#FF3B3010' }}>{mediaError}</div>}
@@ -637,18 +653,97 @@ export default function Room() {
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{layoutMode === 'grid' ? 'Focus' : 'Grid'}</span>
             </button>
 
-            <div className="apple-panel" style={{ background: '#FF3B3010', color: '#FF3B30', padding: '0.5rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: 'none' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF3B30' }}></div>
-              REC
-            </div>
+            {!isMobile && (
+              <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingLeft: '0.5rem', paddingRight: '1rem' }}>
+                <img src={theme === 'light' || theme === 'glassy' ? "/logo-light.png" : "/logo-dark.png"} alt="ConvoSync" style={{ height: '28px', objectFit: 'contain' }} />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Video Area */}
         {layoutMode === 'grid' ? (
-          <div className="video-grid" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${peers.length === 0 ? '320px' : '220px'}, 1fr))` }}>
-            {/* Local Video */}
-            <div className="" onClick={() => { setPinnedPeerId('local'); setLayoutMode('pinned'); }} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', flexDirection: 'column', minHeight: '180px', cursor: 'pointer', background: '#000' }}>
+          (() => {
+            const count = peers.length + 1;
+            
+            let gridTemplateColumns: string;
+            let gridTemplateRows: string;
+
+            if (isMobile) {
+              if (count <= 2) {
+                // 1 or 2 users: stack vertically
+                gridTemplateColumns = '1fr';
+                gridTemplateRows = `repeat(${count}, 1fr)`;
+              } else if (count === 3 || count === 4) {
+                // 3 or 4 users: 2x2 grid
+                gridTemplateColumns = 'repeat(2, 1fr)';
+                gridTemplateRows = 'repeat(2, 1fr)';
+              } else if (count === 5) {
+                // 5 users: 3x2 grid with one empty
+                gridTemplateColumns = 'repeat(2, 1fr)';
+                gridTemplateRows = 'repeat(3, 1fr)';
+              } else if (count === 6) {
+                // 6 users: 3x3 grid
+                gridTemplateColumns = 'repeat(3, 1fr)';
+                gridTemplateRows = 'repeat(3, 1fr)';
+              } else {
+                // 7+ users fallback
+                const cols = Math.ceil(Math.sqrt(count));
+                const rows = Math.ceil(count / cols);
+                gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                gridTemplateRows = `repeat(${rows}, 1fr)`;
+              }
+            } else {
+              if (count === 1) {
+                gridTemplateColumns = '1fr';
+                gridTemplateRows = '1fr';
+              } else if (count === 2) {
+                gridTemplateColumns = 'repeat(2, 1fr)';
+                gridTemplateRows = '1fr';
+              } else if (count === 3) {
+                gridTemplateColumns = 'repeat(3, 1fr)';
+                gridTemplateRows = '1fr';
+              } else if (count === 4) {
+                gridTemplateColumns = 'repeat(2, 1fr)';
+                gridTemplateRows = 'repeat(2, 1fr)';
+              } else if (count === 5) {
+                gridTemplateColumns = 'repeat(4, 1fr)';
+                gridTemplateRows = 'repeat(2, 1fr)';
+              } else if (count === 6) {
+                gridTemplateColumns = 'repeat(3, 1fr)';
+                gridTemplateRows = 'repeat(2, 1fr)';
+              } else {
+                const cols = Math.ceil(Math.sqrt(count));
+                const rows = Math.ceil(count / cols);
+                gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                gridTemplateRows = `repeat(${rows}, 1fr)`;
+              }
+            }
+
+            const getItemStyle = (id: string, index: number) => {
+              if (!isMobile && count === 5) {
+                const isPinned = pinnedPeerId ? pinnedPeerId === id : index === 0;
+                if (isPinned) {
+                  return { gridColumn: 'span 2', gridRow: 'span 2' };
+                }
+              }
+              return { gridColumn: 'span 1', gridRow: 'span 1' };
+            };
+
+            return (
+              <div className="video-grid" style={{ gridTemplateColumns, gridTemplateRows }}>
+                {/* Local Video */}
+                <div 
+                  onClick={() => { 
+                    if (!isMobile && count === 5 && layoutMode === 'grid') {
+                      setPinnedPeerId('local');
+                    } else {
+                      setPinnedPeerId('local'); 
+                      setLayoutMode('pinned'); 
+                    }
+                  }} 
+                  style={{ ...getItemStyle('local', 0), width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', flexDirection: 'column', minHeight: '180px', cursor: 'pointer', background: '#000' }}
+                >
               <video
                 ref={(node) => {
                   myVideoRef.current = node;
@@ -666,21 +761,35 @@ export default function Room() {
                   </div>
                 </div>
               )}
-              <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 10 }}>
                 {userName} (You) {isMuted && <MicOff size={14} color="#FF3B30" />}
               </div>
+              
+              {/* Color Boundary Overlay */}
+              <div style={{ position: 'absolute', inset: 0, border: `1px solid var(--border-color)`, borderRadius: '0', pointerEvents: 'none', zIndex: 20 }}></div>
             </div>
 
             {/* Remote Videos */}
-            {peers.map(peerObj => (
-              <div key={peerObj.peerID} onClick={() => { setPinnedPeerId(peerObj.peerID); setLayoutMode('pinned'); }} style={{ width: '100%', height: '100%', cursor: 'pointer' }}>
-                <RemoteVideo stream={peerObj.stream} peerName={peerObj.peerName} peerID={peerObj.peerID} isVideoOff={peerObj.isVideoOff} />
+            {peers.map((peerObj, index) => (
+              <div 
+                key={peerObj.peerID} 
+                onClick={() => { 
+                  if (!isMobile && count === 5 && layoutMode === 'grid') {
+                    setPinnedPeerId(peerObj.peerID);
+                  } else {
+                    setPinnedPeerId(peerObj.peerID); 
+                    setLayoutMode('pinned'); 
+                  }
+                }} 
+                style={{ ...getItemStyle(peerObj.peerID, index + 1), width: '100%', height: '100%', cursor: 'pointer' }}
+              >
+                <RemoteVideo stream={peerObj.stream} peerName={peerObj.peerName} peerID={peerObj.peerID} isVideoOff={peerObj.isVideoOff} mode="grid" />
               </div>
             ))}
 
             {/* Waiting placeholder */}
             {peers.length === 0 && (
-              <div className="" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', minHeight: '180px' }}>
+              <div style={{ ...getItemStyle('waiting', 1), width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', minHeight: '180px' }}>
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                   <Users size={48} style={{ opacity: 0.5, marginBottom: '1rem' }} />
                   <p style={{ fontWeight: 500 }}>Waiting for others to join...</p>
@@ -689,6 +798,8 @@ export default function Room() {
               </div>
             )}
           </div>
+          );
+        })()
         ) : (
           <div className="pinned-layout-container">
             {/* Remote Strip (Left Column) */}
@@ -697,7 +808,7 @@ export default function Room() {
                 {/* Show all peers that are NOT currently pinned */}
                 {peers.filter(p => p.peerID !== (pinnedPeerId || peers[0]?.peerID)).map(peerObj => (
                   <div key={peerObj.peerID} className="mini-remote-video" onClick={() => setPinnedPeerId(peerObj.peerID)} title={`Pin ${peerObj.peerName}`}>
-                    <RemoteVideo stream={peerObj.stream} peerName={peerObj.peerName} peerID={peerObj.peerID} isVideoOff={peerObj.isVideoOff} />
+                    <RemoteVideo stream={peerObj.stream} peerName={peerObj.peerName} peerID={peerObj.peerID} isVideoOff={peerObj.isVideoOff} mode="pinned" />
                   </div>
                 ))}
               </div>
@@ -732,7 +843,7 @@ export default function Room() {
                     </div>
 
                     {/* Color Boundary Overlay */}
-                    <div style={{ position: 'absolute', inset: 0, border: `2px solid ${getHashColor(socket.id || '')}`, borderRadius: '0', pointerEvents: 'none', zIndex: 20 }}></div>
+                    <div style={{ position: 'absolute', inset: 0, border: `1px solid var(--border-color)`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
                   </div>
                 </>
               ) : (
@@ -769,7 +880,7 @@ export default function Room() {
                   </div>
 
                   {/* Color Boundary Overlay */}
-                  <div style={{ position: 'absolute', inset: 0, border: `2px solid ${getHashColor(socket.id || '')}`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
+                  <div style={{ position: 'absolute', inset: 0, border: `1px solid var(--border-color)`, borderRadius: '16px', pointerEvents: 'none', zIndex: 20 }}></div>
                 </div>
               )}
             </div>
@@ -811,8 +922,8 @@ export default function Room() {
 
           <div style={{ width: '1px', height: '32px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
 
-          <button onClick={leaveRoom} className="destructive" style={{ borderRadius: '100px', padding: '0.75rem 1.5rem', fontWeight: 600 }}>
-            <PhoneOff size={18} style={{ marginRight: '0.5rem' }} /> Leave
+          <button onClick={leaveRoom} className="destructive" style={{ borderRadius: '100px', padding: isMobile ? '0.75rem' : '0.75rem 1.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PhoneOff size={18} style={{ marginRight: isMobile ? '0' : '0.5rem' }} /> {!isMobile && "Leave"}
           </button>
         </div>
       </div>
@@ -904,7 +1015,7 @@ export default function Room() {
             {activeTab === 'participants' && (
               <div style={{ padding: '0', flex: 1, background: 'var(--panel-bg)', overflowY: 'auto' }}>
                 <div style={{ padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.2rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: getHashColor(socket.id || ''), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.2rem' }}>
                     {userName.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, fontWeight: 500 }}>{userName} (You)</div>
@@ -912,7 +1023,7 @@ export default function Room() {
                 </div>
                 {peers.map(peerObj => (
                   <div key={peerObj.peerID} style={{ padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--panel-bg-secondary)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.2rem' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: getHashColor(peerObj.peerID), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.2rem' }}>
                       {peerObj.peerName?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div style={{ flex: 1, fontWeight: 500 }}>{peerObj.peerName || 'User'}</div>

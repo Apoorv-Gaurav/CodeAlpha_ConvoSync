@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Video, LogOut, Plus, MonitorPlay, Palette } from 'lucide-react';
 import { useTheme, type Theme } from '../ThemeContext';
+import Logo from '../components/Logo';
 
 export default function Dashboard() {
   const { theme, setTheme } = useTheme();
@@ -46,7 +47,7 @@ export default function Dashboard() {
   return (
     <div className="main-content">
       <header className="dashboard-header">
-        <h2 style={{ fontSize: '2rem', fontWeight: 700 }}>ConvoSync</h2>
+        <Logo width="160px" />
         <div className="dashboard-header-actions">
           
           <div className="apple-panel" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem', borderRadius: '12px' }}>
